@@ -35,7 +35,18 @@ void workerThreadStart(WorkerArgs * const args) {
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
 
-    printf("Hello world from thread %d\n", args->threadId);
+    //printf("Hello world from thread %d\n", args->threadId);
+    //auto start = std::chrono::system_clock::now();
+    for (unsigned int i = args->threadId; i < args->height; i = i + args->numThreads) {
+	    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, 
+			    args->width, args->height,
+			    i,
+			    1,
+			    args->maxIterations, args->output);
+    }
+    //auto end = std::chrono::system_clock::now();
+    //std::chrono::duration<double> elapsed_seconds = end-start;
+    //printf("thread %d, elapsed time: %lf\n", args->threadId, elapsed_seconds.count());
 }
 
 //
