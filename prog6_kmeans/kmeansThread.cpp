@@ -61,31 +61,44 @@ double dist(double *x, double *y, int nDim) {
   return sqrt(accum);
 }
 
+double dist2(double *x, double *y, int nDim) {
+  double accum = 0.0;
+  for (int i = 0; i < nDim; i++) {
+    accum += pow((x[i] - y[i]), 2);
+  }
+  return accum;
+}
+
 /**
  * Assigns each data point to its "closest" cluster centroid.
  */
-void computeAssignments(WorkerArgs *const args) {
-  double *minDist = new double[args->M];
-  
-  // Initialize arrays
-  for (int m =0; m < args->M; m++) {
-    minDist[m] = 1e30;
-    args->clusterAssignments[m] = -1;
-  }
-
+void computeAssignmentsThread(int mStart, int mEnd, WorkerArgs *const args) {
   // Assign datapoints to closest centroids
-  for (int k = args->start; k < args->end; k++) {
-    for (int m = 0; m < args->M; m++) {
-      double d = dist(&args->data[m * args->N],
+  for (int m = mStart; m < mEnd; m++) {
+    double minDist = 1e30;
+    int _k;
+    for (int k = args->start; k < args->end; k++) {
+      double d = dist2(&args->data[m * args->N],
                       &args->clusterCentroids[k * args->N], args->N);
-      if (d < minDist[m]) {
-        minDist[m] = d;
-        args->clusterAssignments[m] = k;
+      if (d < minDist) {
+        minDist = d;
+	_k = k;
       }
     }
+    args->clusterAssignments[m] = _k;
   }
+}
 
-  free(minDist);
+#define THREAD_NUM 8
+void computeAssignments(WorkerArgs *const args) {
+   thread t[THREAD_NUM];
+   int m = args->M / THREAD_NUM;
+   for (int i = 0; i < THREAD_NUM; i++) {
+     t[i] = thread(computeAssignmentsThread, i * m, (i + 1) * m, args);
+   }
+   for (int i = 0; i < THREAD_NUM; i++) {
+     t[i].join();
+   }
 }
 
 /**
