@@ -9,6 +9,7 @@
 using namespace ispc;
 
 extern void sqrtSerial(int N, float startGuess, float* values, float* output);
+extern void sqrtAVX(int N, float startGuess, float* values, float* output);
 
 static void verifyResult(int N, float* result, float* gold) {
     for (int i=0; i<N; i++) {
@@ -70,6 +71,23 @@ int main() {
     }
 
     printf("[sqrt ispc]:\t\t[%.3f] ms\n", minISPC * 1000);
+
+    verifyResult(N, output, gold);
+
+    // Clear out the buffer
+    for (unsigned int i = 0; i < N; ++i)
+        output[i] = 0;
+
+    // Compute the image using AVX2 implementation
+    double minAVX = 1e30;
+    for (int i = 0; i < 3; ++i) {
+        double startTime = CycleTimer::currentSeconds();
+        sqrtAVX(N, initialGuess, values, output);
+        double endTime = CycleTimer::currentSeconds();
+        minAVX = std::min(minAVX, endTime - startTime);
+    }
+
+    printf("[sqrt AVX]:\t\t[%.3f] ms\n", minAVX * 1000);
 
     verifyResult(N, output, gold);
 
